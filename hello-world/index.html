@@ -6,34 +6,78 @@
     <title>WebGL Programming</title>
   </head>
   <body>
-    <canvas id="webgl" width="400" height="400"></canvas>
+    <canvas id="webgl" width="400" height="600"></canvas>
   </body>
   <script src="../lib/webgl-utils.js"></script>
   <script src="../lib/webgl-debug.js"></script>
   <script src="../lib/cuon-utils.js"></script>
   <script>
-    const canvas = document.getElementById("webgl", true);
+    const points = [];
 
-    const gl = getWebGLContext(canvas);
+    function main() {
+      const canvas = document.getElementById("webgl");
 
-    const VSHADER_SOURCE = `
-      void main() {
-        gl_Position = vec4(0.6, 0.1, 0.0, 1.0);
-        gl_PointSize = 20.0;
+      const gl = getWebGLContext(canvas);
+
+      const VSHADER_SOURCE = `
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+        void main() {
+          gl_Position = a_Position;
+          gl_PointSize = a_PointSize;
+        }
+      `;
+
+      const FSHADER_SOURCE = `
+        void main() {
+          gl_FragColor = vec4(1.0, 0.2, 0.5, 1.0);
+        }
+      `;
+
+      initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
+
+      const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      console.log(a_Position);
+      if (a_Position < 0) {
+        console.log("Failed to get the storage location of a_Position");
       }
-    `;
 
-    const FSHADER_SOURCE = `
-      void main() {
-        gl_FragColor = vec4(1.0, 0.2, 0.5, 1.0);
+      const a_PointSize = gl.getAttribLocation(gl.program, "a_PointSize");
+      console.log(a_PointSize);
+      if (a_PointSize < 0) {
+        console.log("Failed to get the storage location of a_PointSize");
       }
-    `;
 
-    initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
+      canvas.addEventListener("click", function clickListener(e) {
+        const [x, y] = [e.clientX, e.clientY];
+        console.log([x, y]);
+        const rect = e.target.getBoundingClientRect();
+        console.log(rect);
+        const [rx, ry] = [x - rect.left, y - rect.top];
+        console.log([rx, ry]);
+        const [glX, glY] = [
+          (rx - rect.width / 2) / (rect.width / 2),
+          (rect.height / 2 - ry) / (rect.height / 2),
+        ];
+        console.log([glX, glY]);
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+        points.push([glX, glY]);
 
-    gl.drawArrays(gl.POINTS, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        points.map((point) => {
+          gl.vertexAttrib2f(a_Position, point[0], point[1]);
+        });
+
+        gl.drawArrays(gl.POINTS, 0, 1);
+      });
+
+      gl.vertexAttrib1f(a_PointSize, 30.0);
+
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+
+    main();
   </script>
 </html>
