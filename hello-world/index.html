@@ -13,6 +13,7 @@
   <script src="../lib/cuon-utils.js"></script>
   <script>
     const points = [];
+    const colors = [];
 
     function main() {
       const canvas = document.getElementById("webgl");
@@ -29,13 +30,16 @@
       `;
 
       const FSHADER_SOURCE = `
+        precision mediump float;
+        uniform vec4 u_FragColor;
         void main() {
-          gl_FragColor = vec4(1.0, 0.2, 0.5, 1.0);
+          gl_FragColor = u_FragColor;
         }
       `;
 
       initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
 
+      // attribute will return -1 when error
       const a_Position = gl.getAttribLocation(gl.program, "a_Position");
       console.log(a_Position);
       if (a_Position < 0) {
@@ -46,6 +50,12 @@
       console.log(a_PointSize);
       if (a_PointSize < 0) {
         console.log("Failed to get the storage location of a_PointSize");
+      }
+
+      // uniform will return null when error
+      const u_FragColor = gl.getUniformLocation(gl.program, "u_FragColor");
+      if (!u_FragColor) {
+        console.log("Failed to get the storage location of u_FragColor");
       }
 
       canvas.addEventListener("click", function clickListener(e) {
@@ -61,15 +71,31 @@
         ];
         console.log([glX, glY]);
 
+        if (glX > 0 && glY > 0) {
+          colors.push([1.0, 0.0, 0.0]);
+        } else if (glX < 0 && glY > 0) {
+          colors.push([0.0, 1.0, 0.0]);
+        } else if (glX < 0 && glY < 0) {
+          colors.push([0.0, 0.0, 1.0]);
+        } else {
+          colors.push([1.0, 1.0, 1.0]);
+        }
+
         points.push([glX, glY]);
 
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        points.map((point) => {
+        points.map((point, index) => {
           gl.vertexAttrib2f(a_Position, point[0], point[1]);
+          gl.uniform4f(
+            u_FragColor,
+            colors[index][0],
+            colors[index][1],
+            colors[index][2],
+            1.0
+          );
+          gl.drawArrays(gl.POINTS, 0, points.length);
         });
-
-        gl.drawArrays(gl.POINTS, 0, 1);
       });
 
       gl.vertexAttrib1f(a_PointSize, 30.0);
